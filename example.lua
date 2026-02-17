@@ -1,25 +1,44 @@
 local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/norixu/eternal-ui/refs/heads/main/source.lua"))()
 
-local Window = UI:CreateWindow()
+local Window = UI:CreateWindow({
+
+    Title = "Eternal UI",
+    Size = UDim2.fromOffset(600,400)
+
+})
+
+Window:Notify("Loaded")
 
 local Tab = Window:CreateTab("Main")
 
-Tab:Button("Notification",function()
-UI:Notify("Working")
+local Section = Tab:CreateSection("Player")
+
+Section:CreateButton("Print", function()
+
+    print("clicked")
+
 end)
 
-Tab:Toggle("Auto Farm",function(v)
-print(v)
+Section:CreateToggle("Godmode", function(v)
+
+    print(v)
+
 end)
 
-Tab:Slider("WalkSpeed",0,100,function(v)
-print(v)
+Section:CreateTextbox("Enter Name", function(text)
+
+    print(text)
+
 end)
 
-Tab:Dropdown("Weapon",{"Sword","Gun","Bow"},function(v)
-print(v)
+Section:CreateSlider("Speed",16,100,function(v)
+
+    print(v)
+
 end)
 
-Tab:KeyPicker("Kill Aura",Enum.KeyCode.E,function()
-print("Pressed")
+Section:CreateKeybind("Toggle UI",Enum.KeyCode.RightShift,function()
+
+    print("pressed")
+
 end)
