@@ -1,329 +1,329 @@
 local EternalUI = {}
+EternalUI.__index = EternalUI
 
 -- services
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
-local HttpService = game:GetService("HttpService")
 
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
--- config
-local Config = {}
-local FileName = "EternalUI_Config.json"
-
--- load config
-if readfile and isfile and isfile(FileName) then
-Config = HttpService:JSONDecode(readfile(FileName))
-end
-
-local function Save()
-if writefile then
-writefile(FileName,HttpService:JSONEncode(Config))
-end
-end
-
 -- theme
-local Theme = {
-BG = Color3.fromRGB(15,15,15),
-Light = Color3.fromRGB(25,25,25),
-Text = Color3.fromRGB(255,255,255),
-Accent = Color3.fromRGB(255,255,255)
+EternalUI.Theme = {
+
+    Background = Color3.fromRGB(15,15,15),
+    Secondary = Color3.fromRGB(25,25,25),
+    Element = Color3.fromRGB(35,35,35),
+
+    Text = Color3.fromRGB(255,255,255),
+    SubText = Color3.fromRGB(180,180,180),
+
+    Accent = Color3.fromRGB(255,255,255),
+    Outline = Color3.fromRGB(60,60,60)
+
 }
 
--- corner
-local function Corner(obj)
-local c = Instance.new("UICorner",obj)
-c.CornerRadius = UDim.new(0,8)
-end
+-- tween helper
+local function Tween(obj, time, props)
 
--- tween
-local function Tween(obj,props)
-TweenService:Create(obj,TweenInfo.new(.15),props):Play()
-end
+    TweenService:Create(
 
--- notify
-function EternalUI:Notify(text)
+        obj,
+        TweenInfo.new(time, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+        props
 
-local n = Instance.new("TextLabel")
-n.Size = UDim2.new(0,200,0,30)
-n.Position = UDim2.new(1,-210,1,-40)
-n.BackgroundColor3 = Theme.Light
-n.TextColor3 = Theme.Text
-n.Text = text
-n.Parent = PlayerGui
-Corner(n)
-
-n.BackgroundTransparency = 1
-Tween(n,{BackgroundTransparency=0})
-
-task.wait(3)
-
-Tween(n,{BackgroundTransparency=1})
-task.wait(.2)
-n:Destroy()
+    ):Play()
 
 end
 
--- draggable
-local function Drag(frame)
+-- drag
+local function MakeDraggable(frame, handle)
 
-local drag,start,pos
+    handle = handle or frame
 
-frame.InputBegan:Connect(function(i)
-if i.UserInputType == Enum.UserInputType.MouseButton1 then
-drag=true
-start=i.Position
-pos=frame.Position
-end
-end)
+    local dragging = false
+    local dragStart
+    local startPos
 
-frame.InputEnded:Connect(function(i)
-if i.UserInputType == Enum.UserInputType.MouseButton1 then
-drag=false
-end
-end)
+    handle.InputBegan:Connect(function(input)
 
-UIS.InputChanged:Connect(function(i)
-if drag and i.UserInputType == Enum.UserInputType.MouseMovement then
-local delta=i.Position-start
-frame.Position=UDim2.new(
-pos.X.Scale,
-pos.X.Offset+delta.X,
-pos.Y.Scale,
-pos.Y.Offset+delta.Y
-)
-end
-end)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+
+        end
+
+    end)
+
+    UIS.InputChanged:Connect(function(input)
+
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+
+            local delta = input.Position - dragStart
+
+            frame.Position = UDim2.new(
+
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+
+            )
+
+        end
+
+    end)
+
+    UIS.InputEnded:Connect(function(input)
+
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+
+    end)
 
 end
 
 -- window
-function EternalUI:CreateWindow(cfg)
+function EternalUI:CreateWindow(config)
 
-local gui=Instance.new("ScreenGui",PlayerGui)
+    config = config or {}
 
-local main=Instance.new("Frame",gui)
-main.Size=UDim2.new(0,500,0,400)
-main.Position=UDim2.new(.5,-250,.5,-200)
-main.BackgroundColor3=Theme.BG
-Corner(main)
-Drag(main)
+    local Window = {}
+    Window.Tabs = {}
 
-local tabs=Instance.new("Frame",main)
-tabs.Size=UDim2.new(0,120,1,0)
+    -- gui
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "EternalUI"
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.Parent = PlayerGui
 
-local pages=Instance.new("Frame",main)
-pages.Size=UDim2.new(1,-120,1,0)
-pages.Position=UDim2.new(0,120,0,0)
+    -- main
+    local Main = Instance.new("Frame")
+    Main.Size = config.Size or UDim2.fromOffset(600,400)
+    Main.Position = UDim2.fromScale(.5,.5)
+    Main.AnchorPoint = Vector2.new(.5,.5)
+    Main.BackgroundColor3 = self.Theme.Background
+    Main.BorderColor3 = self.Theme.Outline
+    Main.Parent = ScreenGui
 
-local Window={}
+    MakeDraggable(Main)
 
-function Window:CreateTab(name)
+    -- title
+    local Title = Instance.new("TextLabel")
+    Title.Size = UDim2.new(1,0,0,30)
+    Title.BackgroundTransparency = 1
+    Title.Text = config.Title or "Eternal UI"
+    Title.TextColor3 = self.Theme.Text
+    Title.Font = Enum.Font.GothamBold
+    Title.TextSize = 14
+    Title.Parent = Main
 
-local tabbtn=Instance.new("TextButton",tabs)
-tabbtn.Size=UDim2.new(1,0,0,30)
-tabbtn.BackgroundColor3=Theme.Light
-tabbtn.Text=name
-tabbtn.TextColor3=Theme.Text
-Corner(tabbtn)
+    -- tab holder
+    local TabHolder = Instance.new("Frame")
+    TabHolder.Size = UDim2.new(0,120,1,-30)
+    TabHolder.Position = UDim2.fromOffset(0,30)
+    TabHolder.BackgroundColor3 = self.Theme.Secondary
+    TabHolder.Parent = Main
 
-local page=Instance.new("Frame",pages)
-page.Size=UDim2.new(1,0,1,0)
-page.Visible=false
+    -- container
+    local Container = Instance.new("Frame")
+    Container.Size = UDim2.new(1,-120,1,-30)
+    Container.Position = UDim2.fromOffset(120,30)
+    Container.BackgroundTransparency = 1
+    Container.Parent = Main
 
-local layout=Instance.new("UIListLayout",page)
-layout.Padding=UDim.new(0,6)
+    -- notification
+    function Window:Notify(text)
 
-tabbtn.MouseButton1Click:Connect(function()
+        local Notif = Instance.new("TextLabel")
 
-for _,v in pairs(pages:GetChildren()) do
-if v:IsA("Frame") then
-v.Visible=false
-end
-end
+        Notif.Size = UDim2.fromOffset(200,30)
+        Notif.Position = UDim2.new(1,-210,1,-40)
 
-page.Visible=true
+        Notif.BackgroundColor3 = EternalUI.Theme.Element
+        Notif.TextColor3 = EternalUI.Theme.Text
 
-end)
+        Notif.Text = text
+        Notif.Parent = ScreenGui
 
-local Tab={}
+        Tween(Notif,.3,{Position = UDim2.new(1,-210,1,-80)})
 
--- button
-function Tab:Button(text,callback)
+        task.wait(3)
 
-local b=tabbtn:Clone()
-b.Parent=page
-b.Text=text
+        Tween(Notif,.3,{Position = UDim2.new(1,-210,1,-40)})
 
-b.MouseButton1Click:Connect(function()
+        task.wait(.3)
 
-Tween(b,{BackgroundColor3=Theme.Accent})
-task.wait(.1)
-Tween(b,{BackgroundColor3=Theme.Light})
+        Notif:Destroy()
 
-callback()
+    end
 
-end)
+    -- tab
+    function Window:CreateTab(name)
 
-end
+        local Tab = {}
+        Tab.Sections = {}
 
--- toggle
-function Tab:Toggle(text,callback)
+        local Button = Instance.new("TextButton")
 
-local state=Config[text] or false
+        Button.Size = UDim2.new(1,0,0,30)
+        Button.BackgroundColor3 = EternalUI.Theme.Element
+        Button.TextColor3 = EternalUI.Theme.Text
+        Button.Text = name
 
-local t=tabbtn:Clone()
-t.Parent=page
+        Button.Parent = TabHolder
 
-local function refresh()
-t.Text=text.." : "..(state and "ON" or "OFF")
-end
+        local Page = Instance.new("Frame")
+        Page.Size = UDim2.new(1,0,1,0)
+        Page.Visible = false
+        Page.Parent = Container
 
-refresh()
+        Button.MouseButton1Click:Connect(function()
 
-t.MouseButton1Click:Connect(function()
+            for _,v in pairs(Container:GetChildren()) do
+                v.Visible = false
+            end
 
-state=not state
-Config[text]=state
-Save()
+            Page.Visible = true
 
-refresh()
+        end)
 
-callback(state)
+        -- section
+        function Tab:CreateSection(name)
 
-end)
+            local Section = {}
 
-end
+            local Frame = Instance.new("Frame")
 
--- slider
-function Tab:Slider(text,min,max,callback)
+            Frame.Size = UDim2.new(1,-10,0,200)
+            Frame.BackgroundColor3 = EternalUI.Theme.Secondary
 
-local val=Config[text] or min
+            Frame.Parent = Page
 
-local frame=Instance.new("Frame",page)
-frame.Size=UDim2.new(1,0,0,40)
-frame.BackgroundColor3=Theme.Light
-Corner(frame)
+            local Layout = Instance.new("UIListLayout")
+            Layout.Parent = Frame
 
-local label=Instance.new("TextLabel",frame)
-label.Size=UDim2.new(1,0,.5,0)
-label.Text=text.." : "..val
-label.TextColor3=Theme.Text
-label.BackgroundTransparency=1
+            -- button
+            function Section:CreateButton(text, callback)
 
-local bar=Instance.new("Frame",frame)
-bar.Size=UDim2.new(1,-10,0,6)
-bar.Position=UDim2.new(0,5,1,-10)
-bar.BackgroundColor3=Theme.BG
-Corner(bar)
+                local Btn = Instance.new("TextButton")
 
-local fill=Instance.new("Frame",bar)
-fill.Size=UDim2.new((val-min)/(max-min),0,1,0)
-fill.BackgroundColor3=Theme.Accent
-Corner(fill)
+                Btn.Size = UDim2.new(1,0,0,30)
+                Btn.BackgroundColor3 = EternalUI.Theme.Element
 
-bar.InputBegan:Connect(function(i)
+                Btn.Text = text
+                Btn.TextColor3 = EternalUI.Theme.Text
 
-if i.UserInputType==Enum.UserInputType.MouseButton1 then
+                Btn.Parent = Frame
 
-local pos=(i.Position.X-bar.AbsolutePosition.X)/bar.AbsoluteSize.X
+                Btn.MouseButton1Click:Connect(callback)
 
-val=math.floor(min+(max-min)*pos)
+            end
 
-fill.Size=UDim2.new(pos,0,1,0)
+            -- toggle
+            function Section:CreateToggle(text, callback)
 
-label.Text=text.." : "..val
+                local State = false
 
-Config[text]=val
-Save()
+                local Btn = Instance.new("TextButton")
 
-callback(val)
+                Btn.Size = UDim2.new(1,0,0,30)
+                Btn.BackgroundColor3 = EternalUI.Theme.Element
 
-end
+                Btn.Text = text.." : OFF"
+                Btn.TextColor3 = EternalUI.Theme.Text
 
-end)
+                Btn.Parent = Frame
 
-end
+                Btn.MouseButton1Click:Connect(function()
 
--- dropdown
-function Tab:Dropdown(text,list,callback)
+                    State = not State
 
-local current=Config[text] or list[1]
+                    Btn.Text = text.." : "..(State and "ON" or "OFF")
 
-local d=tabbtn:Clone()
-d.Parent=page
+                    callback(State)
 
-local function refresh()
-d.Text=text.." : "..current
-end
+                end)
 
-refresh()
+            end
 
-d.MouseButton1Click:Connect(function()
+            -- textbox
+            function Section:CreateTextbox(text, callback)
 
-local index=table.find(list,current)+1
+                local Box = Instance.new("TextBox")
 
-if index>#list then index=1 end
+                Box.Size = UDim2.new(1,0,0,30)
+                Box.BackgroundColor3 = EternalUI.Theme.Element
 
-current=list[index]
+                Box.PlaceholderText = text
+                Box.TextColor3 = EternalUI.Theme.Text
 
-Config[text]=current
-Save()
+                Box.Parent = Frame
 
-refresh()
+                Box.FocusLost:Connect(function()
 
-callback(current)
+                    callback(Box.Text)
 
-end)
+                end)
 
-end
+            end
 
--- key picker
-function Tab:KeyPicker(text,default,callback)
+            -- slider
+            function Section:CreateSlider(text,min,max,callback)
 
-local key=Enum.KeyCode[Config[text]] or default
+                local Value = min
 
-local k=tabbtn:Clone()
-k.Parent=page
+                local Btn = Instance.new("TextButton")
 
-local function refresh()
-k.Text=text.." : "..key.Name
-end
+                Btn.Size = UDim2.new(1,0,0,30)
+                Btn.BackgroundColor3 = EternalUI.Theme.Element
 
-refresh()
+                Btn.Text = text.." : "..Value
 
-k.MouseButton1Click:Connect(function()
+                Btn.Parent = Frame
 
-k.Text="Press key..."
+                Btn.MouseButton1Click:Connect(function()
 
-local input=UIS.InputBegan:Wait()
+                    Value += 1
 
-key=input.KeyCode
+                    if Value > max then
+                        Value = min
+                    end
 
-Config[text]=key.Name
-Save()
+                    Btn.Text = text.." : "..Value
 
-refresh()
+                    callback(Value)
 
-end)
+                end)
 
-UIS.InputBegan:Connect(function(i)
+            end
 
-if i.KeyCode==key then
-callback()
-end
+            -- keybind
+            function Section:CreateKeybind(text,key,callback)
 
-end)
+                UIS.InputBegan:Connect(function(input)
 
-end
+                    if input.KeyCode == key then
+                        callback()
+                    end
 
-return Tab
+                end)
 
-end
+            end
 
-return Window
+            return Section
+
+        end
+
+        return Tab
+
+    end
+
+    return Window
 
 end
 
